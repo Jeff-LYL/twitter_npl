@@ -1,0 +1,97 @@
+---
+title: "Twitter NLP"
+output: html_document
+date: "2022-11-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Install Packages
+```{r}
+install.packages("tm")
+install.packages("SnowballC")
+install.packages("wordcloud")
+install.packages("RColorBrewer")
+install.packages("NLP")
+install.packages("ggplot2")
+install.packages("reshape2")
+install.packages("RWeka")
+install.packages("textmineR")
+```
+Load Packages
+```{r}
+library("tm")
+library("NLP")
+library("SnowballC")
+library("wordcloud")
+library("RColorBrewer")
+library("RWeka")
+library("ggplot2")
+library("reshape2")
+library(textmineR)
+```
+
+Read file
+```{r}
+file = read.csv("/Users/yilunli/Desktop/Data Competition/twitter/train.csv")
+
+summary(file)
+str(file)
+
+disaster_file <- file[file$target == 1,]
+not_disaster_file <- file[file$target == 0,]
+docs_dis <- VCorpus(VectorSource(disaster_file$text))
+docs_not_dis <- VCorpus(VectorSource(not_disaster_file$text))
+```
+
+Text transformation for disater
+```{r}
+toSpace <- content_transformer(function(x,pattern) gsub(pattern,"",x))
+
+docs_dis <- tm_map(docs_dis, toSpace, "/")
+docs_dis <- tm_map(docs_dis, toSpace, "@")
+docs_dis <- tm_map(docs_dis, toSpace, ")")
+docs_dis <- tm_map(docs_dis, toSpace, ":")
+docs_dis <- tm_map(docs_dis, toSpace, ";")
+docs_dis <- tm_map(docs_dis, toSpace, "!")
+docs_dis <- tm_map(docs_dis, toSpace, "%.%")
+docs_dis <- tm_map(docs_dis, toSpace, "http.*")
+docs_dis <- tm_map(docs_dis, removeWords, c(stopwords(),"and","for","from","with","that","this","after","was","are","have","you","were","the","just","like"))
+                       
+docs_dis <- tm_map(docs_dis, content_transformer(tolower))
+docs_dis <- tm_map(docs_dis, removePunctuation)
+docs_dis <- tm_map(docs_dis, stripWhitespace)
+docs_dis <- tm_map(docs_dis, removeNumbers)
+
+
+inspect(docs_dis)
+```
+Term-documnent Matrix
+```{r}
+dtm_dis <- TermDocumentMatrix(docs_dis)
+m <- as.matrix(dtm_dis)
+v <- sort(rowSums(m),decreasing = TRUE)
+d <- data.frame(word = names(v), freq=v)
+head(d,10)
+```
+Single-word wordcloud Matrix
+```{r}
+set.seed(1234)
+wordcloud(words=d$word,freq = d$freq,max.words = 100,min.freq = 50,random.order = FALSE,scale=c(2,0.5),rot.per = 0.35,colors =brewer.pal(4, "Dark2"))
+```
+
+Bigram wordcloud Matrix
+```{r}
+BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min = 2, max = 2))
+tdm.bigram <- TermDocumentMatrix(docs_dis, control = list(tokenize = BigramTokenizer))
+
+freq <- sort(rowSums(as.matrix(tdm.bigram)), decreasing = TRUE)
+freq.df <- data.frame(word = names(freq), freq = freq)
+head(freq.df, 50)
+```
+```{r}
+set.seed(1234)
+wordcloud(words=freq.df$word, freq=freq.df$freq,min.freq = 20, scale=c(1.5,0.5),max.words = 50, random.order = FALSE, rot.per=0.35,colors =brewer.pal(4, "Dark2"))
+```
