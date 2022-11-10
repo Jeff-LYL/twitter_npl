@@ -89,7 +89,7 @@ tdm.bigram <- TermDocumentMatrix(docs_dis, control = list(tokenize = BigramToken
 
 freq <- sort(rowSums(as.matrix(tdm.bigram)), decreasing = TRUE)
 freq.df <- data.frame(word = names(freq), freq = freq)
-head(freq.df, 50)
+head(freq.df, 10)
 ```
 ```{r}
 set.seed(1234)
